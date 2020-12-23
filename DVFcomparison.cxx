@@ -66,9 +66,7 @@ int main( int argc, char *argv[] )
   DVFIter1.GoToBegin();
   DVFIter2.GoToBegin();
 
-  float totalDisplacement_x = 0.0;
-  float totalDisplacement_y = 0.0;
-  float totalDisplacement_z = 0.0;
+  float totalDisplacement = 0.0;
 
   long int numOfPixels = 0;
 
@@ -80,11 +78,11 @@ int main( int argc, char *argv[] )
       float displacement_y = field1[1] - field2[1];
       float displacement_z = field1[2] - field2[2];
 
-      std::cout<<"field1: "<<field1<<"; "<<" field2: "<<field2<<std::endl;
+      float pixelDisplacement = sqrt(displacement_x*displacement_x + displacement_y*displacement_y + displacement_z*displacement_z);
 
-      totalDisplacement_x = totalDisplacement_x + displacement_x;
-      totalDisplacement_y = totalDisplacement_y + displacement_y;
-      totalDisplacement_z = totalDisplacement_z + displacement_z;
+      std::cout<<"Pixel Displacement: "<<pixelDisplacement<<std::endl;
+
+      totalDisplacement += pixelDisplacement;
 
       numOfPixels += 1;
 
@@ -92,21 +90,16 @@ int main( int argc, char *argv[] )
       ++DVFIter2;
   }
 
-  std::cout<<totalDisplacement_x<<", "<<totalDisplacement_y<<", "<<totalDisplacement_z<<std::endl;
   std::cout<<"Num of pixels: "<<numOfPixels<<std::endl;
 
-  float averageDisp_x = totalDisplacement_x/numOfPixels;
-  float averageDisp_y = totalDisplacement_y/numOfPixels;
-  float averageDisp_z = totalDisplacement_z/numOfPixels;
-
-  float averageDisplacement = sqrt(averageDisp_x*averageDisp_x + averageDisp_y*averageDisp_y + averageDisp_z*averageDisp_z);
+  float averageDisplacement = totalDisplacement/numOfPixels;
 
   // Printing results:
 
-  std::cout<<" Average Component Displacements: "<< std::endl;
-  std::cout<<" Average X Component = "<<averageDisp_x<< std::endl;
-  std::cout<<" Average Y Component = "<<averageDisp_y<< std::endl;
-  std::cout<<" Average Z Component = "<<averageDisp_z<< std::endl;
+  //std::cout<<" Average Component Displacements: "<< std::endl;
+  //std::cout<<" Average X Component = "<<averageDisp_x<< std::endl;
+  //std::cout<<" Average Y Component = "<<averageDisp_y<< std::endl;
+  //std::cout<<" Average Z Component = "<<averageDisp_z<< std::endl;
   std::cout<<std::endl;
   std::cout<<" Average displacement = "<<averageDisplacement<< std::endl;
   return EXIT_SUCCESS;
