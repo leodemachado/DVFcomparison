@@ -35,12 +35,12 @@
 
 int main( int argc, char *argv[] )
 {
-  if( argc < 2 )
+  if( argc < 3 || argc > 4 )
     {
-    std::cerr << "Missing Parameters " << std::endl;
-    std::cerr << "Usage: " << argv[0];
-    std::cerr << " DVF1   DVF2 "<< std::endl;
-    return EXIT_FAILURE;
+        std::cerr << "Missing Parameters " << std::endl;
+        std::cerr << "Usage: " << argv[0];
+        std::cerr << " DVF1   DVF2 [Mask] "<< std::endl;
+        return EXIT_FAILURE;
     }
 
   const    unsigned int    Dimension = 3;
@@ -48,20 +48,40 @@ int main( int argc, char *argv[] )
   typedef  float           PixelType;
 
   typedef itk::VectorImage< PixelType, Dimension >  DVFImageType;
-
   typedef itk::ImageFileReader< DVFImageType > DVFImageReaderType;
+
+  typedef itk::Image<PixelType, Dimension> MaskImageType;
+  typedef itk::ImageFileReader< MaskImageType > MaskImageReaderType;
 
   DVFImageReaderType::Pointer dvfImageReader1 = DVFImageReaderType::New();
   DVFImageReaderType::Pointer dvfImageReader2 = DVFImageReaderType::New();
+
+  MaskImageReaderType::Pointer maskImageReader = MaskImageReaderType::New();
 
   dvfImageReader1->SetFileName( argv[1] );
   dvfImageReader1->Update();
   dvfImageReader2->SetFileName( argv[2] );
   dvfImageReader2->Update();
 
-  using IteratorType = itk::ImageRegionIterator<DVFImageType>;
-  IteratorType DVFIter1 (dvfImageReader1->GetOutput(), dvfImageReader1->GetOutput()->GetLargestPossibleRegion());
-  IteratorType DVFIter2 (dvfImageReader2->GetOutput(), dvfImageReader2->GetOutput()->GetLargestPossibleRegion());
+  //std::cout<<"DVFs read with success!"<<std::endl;
+
+  typedef itk::ImageRegionIterator< DVFImageType > DVFIteratorType;
+  DVFIteratorType DVFIter1 (dvfImageReader1->GetOutput(), dvfImageReader1->GetOutput()->GetLargestPossibleRegion());
+  DVFIteratorType DVFIter2 (dvfImageReader2->GetOutput(), dvfImageReader2->GetOutput()->GetLargestPossibleRegion());
+
+  typedef itk::ImageRegionIterator< MaskImageType > MaskIteratorType;
+  MaskIteratorType MaskIter;
+
+  if (argc > 3){
+      maskImageReader->SetFileName( argv[3] );
+      maskImageReader->Update();
+
+      //std::cout<<"Mask read with success!"<<std::endl;
+
+      MaskIteratorType maskIter (maskImageReader->GetOutput(), maskImageReader->GetOutput()->GetLargestPossibleRegion());
+      MaskIter = maskIter;
+      MaskIter.GoToBegin();
+  }
 
   DVFIter1.GoToBegin();
   DVFIter2.GoToBegin();
@@ -71,36 +91,47 @@ int main( int argc, char *argv[] )
   long int numOfPixels = 0;
 
   while(!DVFIter1.IsAtEnd()){
+      // argc == 4 indicates the a mask was provided: DVF1, DVF2, Mask;
+      if ((argc == 4 && MaskIter.Get() == 1) || argc == 3){
 
-      DVFImageType::PixelType field1 = DVFIter1.Get();
-      DVFImageType::PixelType field2 = DVFIter2.Get();
-      float displacement_x = field1[0] - field2[0];
-      float displacement_y = field1[1] - field2[1];
-      float displacement_z = field1[2] - field2[2];
+          DVFImageType::PixelType field1 = DVFIter1.Get();
+          DVFImageType::PixelType field2 = DVFIter2.Get();
+          float displacement_x = field1[0] - field2[0];
+          float displacement_y = field1[1] - field2[1];
+          float displacement_z = field1[2] - field2[2];
 
-      float pixelDisplacement = sqrt(displacement_x*displacement_x + displacement_y*displacement_y + displacement_z*displacement_z);
+          float pixelDisplacement = sqrt(displacement_x*displacement_x + displacement_y*displacement_y + displacement_z*displacement_z);
 
-      std::cout<<"Pixel Displacement: "<<pixelDisplacement<<std::endl;
+          //std::cout<<"Pixel Displacement: "<<pixelDisplacement<<std::endl;
 
-      totalDisplacement += pixelDisplacement;
+          totalDisplacement += pixelDisplacement;
 
-      numOfPixels += 1;
+          numOfPixels += 1;
 
-      ++DVFIter1;
-      ++DVFIter2;
+          ++DVFIter1;
+          ++DVFIter2;
+
+          if ( argc == 4 ){
+
+              ++MaskIter;
+          }
+
+      } else if (argc == 4) {
+
+          //std::cout<<"Ouch!"<<std::endl;
+
+          ++DVFIter1;
+          ++DVFIter2;
+          ++MaskIter;
+
+      }
   }
 
-  std::cout<<"Num of pixels: "<<numOfPixels<<std::endl;
+  //std::cout<<"Num of pixels considered: "<<numOfPixels<<std::endl;
 
   float averageDisplacement = totalDisplacement/numOfPixels;
 
-  // Printing results:
+  //std::cout<<" Average displacement = "<<averageDisplacement<< std::endl;
 
-  //std::cout<<" Average Component Displacements: "<< std::endl;
-  //std::cout<<" Average X Component = "<<averageDisp_x<< std::endl;
-  //std::cout<<" Average Y Component = "<<averageDisp_y<< std::endl;
-  //std::cout<<" Average Z Component = "<<averageDisp_z<< std::endl;
-  std::cout<<std::endl;
-  std::cout<<" Average displacement = "<<averageDisplacement<< std::endl;
-  return EXIT_SUCCESS;
+  std::cout<<averageDisplacement<<std::endl;
 }
