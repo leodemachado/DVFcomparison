@@ -37,7 +37,7 @@ int main( int argc, char *argv[] )
 {
   if( argc < 3 || argc > 4 )
     {
-        std::cerr << "Missing Parameters " << std::endl;
+        std::cerr << "Missing Parameters! " << std::endl;
         std::cerr << "Usage: " << argv[0];
         std::cerr << " DVF1   DVF2 [Mask] "<< std::endl;
         return EXIT_FAILURE;
@@ -110,6 +110,7 @@ int main( int argc, char *argv[] )
 
           ++DVFIter1;
           ++DVFIter2;
+
 
           if ( argc == 4 ){
 

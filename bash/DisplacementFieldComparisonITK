@@ -1,92 +1,94 @@
 #!/bin/bash
 
 # Folder containning all the patients, images  and fields
-current=/home/9679247/Documentos/Doutorado/q-Evaluation-Project-Greg/
+current=/home/leonardo/Documents/Doutorado/q-Evaluation-Rig-Reg-Projeto-Greg/
 cd $current 
 
 # Folder containning the executable
-exeDir=/home/9679247/Documentos/Doutorado/Registration-Repos/DVFcomparison/debug/
+exeDir=/home/leonardo/Documents/Doutorado/Image-Registration/DVFcomparison/debug/
 
 # reference fields for comparison
-dispFieldRefFolder=/home/9679247/Documentos/Doutorado/q-Evaluation-Project-Greg/DispFieldsSpecialists3DSlicer/     
+dispFieldRefFolder=/home/leonardo/Documents/Doutorado/q-Evaluation-Rig-Reg-Projeto-Greg/GoldStandardFields/     
 
 # folder containing the masks used in the comparison
-maskFolder=/home/9679247/Documentos/Doutorado/q-Evaluation-Project-Greg/CT_aligned_PatientsBrainMask/     
+maskFolder=/home/leonardo/Documents/Doutorado/q-Evaluation-Rig-Reg-Projeto-Greg/CT-Brain-Mask/     
 
 # Deciding which results folder to process 
 #res='NormalizedResults'
 #res='NonNormalizedResults'
 
 #`ls -A1`
-#entropyType='Tsallis'
-entropyType='TsallisNorm'
+entropyType='Tsallis'
+#entropyType='TsallisNorm'
 
 refFieldsi=0
 
 for folder in `ls -d -- 0*/`; do
-	folderName=$(echo "$folder" | sed -e 's/.$//')
+	#folderName=$(echo "$folder" | sed -e 's/.$//')
+	#if [ "$folderName" == "001" ]; then
+	echo "Patient /$folder ---------------------------------------------------------."
 	
-	if [ "$folderName" == "001" ]; then
-		echo "Patient /$folder ---------------------------------------------------------."
-		
-		#Entering inside the folders containing the fields
-		cd $current$folder$entropyType
-		
-		# Listing and entering only patient's folder and creat a CSV for 
-		# storing q-value vs dispField agreement 
-		csv=$current${folder}DVFComparison-${entropyType}-${folderName}.csv
+	#Entering inside the folders containing the fields
+	cd $current$folder$entropyType
+	
+	# Listing and entering only patient's folder and creat a CSV for 
+	# storing q-value vs dispField agreement 
+	csv=$current${folder}DVFComparison-${entropyType}-${folderName}.csv
 
-		# check the existence of old csv files and delete them.
-		if test -f "$csv"; then
-			rm $csv
-			echo "Previous CSV file removed."
-		else
-			echo "No file to remove."
-		fi
-		
-		#Create a brand new csv file to hold the results
-		echo "qValue,WholeFieldAgreement,MaskedFieldAgreement" >> $csv 
-		
-		# pick the reference field for the present patient
-		fieldRefName=DisplacementField$folderName.nrrd
-		
-		if test -f "$dispFieldRefFolder$fieldRefName"; then
-			fieldRef=$dispFieldRefFolder$fieldRefName
-			refFieldsi=$((refFieldsi+1))
-		else
-			echo "Reference Field $fieldRefName does not exist!"
-		fi
-
-		# pick CT reference mask for the present patient
-		maskName=mask${folderName}Resampled.nrrd
-
-		if test -f "$maskFolder$maskName"; then
-			mask=$maskFolder$maskName
-		else
-			echo "Mask $maskFolder$maskName does not exist!"
-		fi
-
-
-		i=0 # counter for found pair of images
-		for field in `ls -A1 Displacement*.nrrd`; do
-			
-			fieldName=${field%'.nrrd'}
-			qValue=${fieldName##*'DisplacementField_q='}	
-			
-			fieldTested=$current$folder$entropyType/$field
-			
-			# Catching plastimatch output
-			comparisonWholeImage=`${exeDir}DVFcomparison $fieldRef $fieldTested`
-			comparisonMaskedImage=`${exeDir}DVFcomparison $fieldRef $fieldTested $mask`
-		
-			# Printing into file
-			echo "$qValue,$comparisonWholeImage,$comparisonMaskedImage" >> $csv
-			
-			echo 'Patient = '$folder --'qValue = ' $qValue --'Whole Aver. Diff. = '$comparisonWholeImage --'Masked = '$comparisonMaskedImage  
-			
-			i=$((i+1))
-		done
-		echo $i
+	# check the existence of old csv files and delete them.
+	if test -f "$csv"; then
+		rm $csv
+		echo "Previous CSV file removed."
+	else
+		echo "No file to remove."
 	fi
+	
+	#Create a brand new csv file to hold the results
+	echo "qValue,WholeFieldAgreement,MaskedFieldAgreement" >> $csv 
+	
+	# pick the reference field for the present patient
+	fieldRefName=DisplacementField$folderName.nrrd
+	
+	if test -f "$dispFieldRefFolder$fieldRefName"; then
+		fieldRef=$dispFieldRefFolder$fieldRefName
+		refFieldsi=$((refFieldsi+1))
+	else
+		echo "Reference Field $fieldRefName does not exist!"
+		break
+	fi
+
+
+	# pick CT reference mask for the present patient
+	maskName=mask${folderName}Resampled.nrrd
+
+	if test -f "$maskFolder$maskName"; then
+		mask=$maskFolder$maskName
+	else
+		echo "Mask $maskFolder$maskName does not exist!"
+		break
+	fi
+
+
+	i=0 # counter for found pair of images
+	for field in `ls -A1 Displacement*.nrrd`; do
+		
+		fieldName=${field%'.nrrd'}
+		qValue=${fieldName##*'DisplacementField_q='}	
+		
+		fieldTested=$current$folder$entropyType/$field
+		
+		# Catching plastimatch output
+		comparisonWholeImage=`${exeDir}DVFcomparison $fieldRef $fieldTested`
+		comparisonMaskedImage=`${exeDir}DVFcomparison $fieldRef $fieldTested $mask`
+	
+		# Printing into file
+		echo "$qValue,$comparisonWholeImage,$comparisonMaskedImage" >> $csv
+		
+		echo 'Patient = '$folder --'qValue = ' $qValue --'Whole Aver. Diff. = '$comparisonWholeImage --'Masked = '$comparisonMaskedImage  
+		
+		i=$((i+1))
+	done
+	echo $i
+	#fi
 done
 echo $refFieldsi
